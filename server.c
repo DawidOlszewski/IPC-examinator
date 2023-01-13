@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
         refresh_fd_set(&readfds);
 
         // Blocking system call, waiting for select call
-        select(MAX_CLIENT_SUPPORTED + 1, &readfds, NULL, NULL, NULL);
+        select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
 
         if(FD_ISSET(connection_socket, &readfds)){
