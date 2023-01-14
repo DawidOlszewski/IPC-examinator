@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
                 check(
                     write(monitored_fd_set[i], buffer, BUFFER_SIZE),
                         "write to recv failed");
-    
             }            
             
         }
