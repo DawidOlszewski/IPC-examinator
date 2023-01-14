@@ -31,7 +31,7 @@ int setup_server(){
             "bind failed");
 
     check(
-        listen(connection_socket, MAX_CLIENT_SUPPORTED), 
+        listen(connection_socket, MAX_PLAYER_SUPPORTED), 
             "listen failed");
 
     add_to_monitored_fd_set(connection_socket);

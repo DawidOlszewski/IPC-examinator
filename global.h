@@ -1,6 +1,7 @@
 #include "game.h"
 #include "constants.h"
+#include "player.h"
 
-extern int monitored_fd_set[MAX_CLIENT_SUPPORTED];
+extern Player* players[MAX_PLAYER_SUPPORTED];
 extern gameState currentGameState;
 extern int max_fd;

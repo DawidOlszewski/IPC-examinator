@@ -9,6 +9,9 @@
 #include "constants.h"
 #include "global.h"
 
+
+
+
 int main(int argc, char *argv[])
 {
     intitiaze_monitor_fd_set();
@@ -73,15 +76,15 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            for(int i = 0; i < MAX_CLIENT_SUPPORTED; i++){
-                // Send data to every client except master and data sender
-                if(monitored_fd_set[i] == -1 || monitored_fd_set[i] == connection_socket || monitored_fd_set[i] == data_socket)
-                    continue;
+            // for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+            //     // Send data to every client except master and data sender
+            //     if(monitored_fd_set[i] == -1 || monitored_fd_set[i] == connection_socket || monitored_fd_set[i] == data_socket)
+            //         continue;
 
-                check(
-                    write(monitored_fd_set[i], buffer, BUFFER_SIZE),
-                        "write to recv failed");
-            }            
+            //     check(
+            //         write(monitored_fd_set[i], buffer, BUFFER_SIZE),
+            //             "write to recv failed");
+            // }            
             
         }
     } 

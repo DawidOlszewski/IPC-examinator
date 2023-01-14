@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "global.h": "c",
+    "constants.h": "c",
+    "client-s.h": "c",
+    "player.h": "c"
+  }
+}
