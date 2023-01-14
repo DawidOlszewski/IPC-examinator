@@ -5,9 +5,9 @@
 #include"fd-set-utils.h"
 #include"errors.h"
 #include"constants.h"
-#include"fd-set-utils.h"
+#include"global.h"
 
-int setup_server(int * monitored_fd_set){
+int setup_server(){
     struct sockaddr_un name; // Socket type and socket name
     int connection_socket;
     // In case some process is already listening on our socket name
@@ -34,9 +34,9 @@ int setup_server(int * monitored_fd_set){
         listen(connection_socket, MAX_CLIENT_SUPPORTED), 
             "listen failed");
 
-    add_to_monitored_fd_set(monitored_fd_set, connection_socket);
+    add_to_monitored_fd_set(connection_socket);
 
-    printf("server.o\n");
+    printf("server is listening...\n");
 
     return connection_socket;
 }
@@ -47,16 +47,20 @@ void close_server(int connection_socket){
     printf("Connection closed..\n");
 }
 
-int add_client(int* monitored_fd_set, int connection_socket){
+int handle_new_connection(int connection_socket){
     // Master socket call, new client connects
-    printf("New connection recieved, accept the connection\n");
+    printf("New connection recieved\n");
 
     int data_socket = check(accept(connection_socket, NULL, NULL), 
                     "accept failed");
 
-    printf("Connection accepted from client\n");
-
-    add_to_monitored_fd_set(monitored_fd_set, data_socket);
+    if(currentGameState == NOTSTARTED){
+        printf("Connection accepted from client\n");
+        add_to_monitored_fd_set(data_socket);
+    }else{
+        printf("connection closed because game have already started\n");
+        check(close(data_socket), "close new data_socket"); //if we want to clase we have to accept it first
+    }
 
     return data_socket;
 }
