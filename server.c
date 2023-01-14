@@ -4,13 +4,31 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <math.h>
+#include <sys/wait.h>
 
 #define SOCKET_NAME "/tmp/DemoSocket"
 #define BUFFER_SIZE 128
 
+
 #define MAX_CLIENT_SUPPORTED  32
 
 #define max(x, y) x > y ? x : y
+
+typedef struct Answer{
+    char identifier;
+    char answer_content[BUFFER_SIZE];
+} Answer;
+
+typedef struct Question{
+    int id;
+    char question_content[BUFFER_SIZE];
+    Answer answers[4];
+    int correct_answer;
+} Question;
 
 /*An array of File descriptors which the server process
  * is maintaining in order to talk with the connected clients.
@@ -73,6 +91,90 @@ int check(int response, char* message){
 
 }
 
+Question* parse_question(int question_id){
+    pid_t childPID;
+    int status;
+    int shared_memory_fd;
+    int shared_memory_size; 
+    Question* parsed_question;
+    const char *name = "QUESTION_OBJECT";
+    shared_memory_size = sizeof(Question);
+    // In case of unexpected error in parser clear shared memory
+    shm_unlink(name);
+
+    shared_memory_fd = shm_open (name, O_CREAT | O_EXCL | O_RDWR, S_IRWXU | S_IRWXG);
+    if (shared_memory_fd < 0) {
+        perror("Error allocating shared memory");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Created shared memory %s\n", name);
+
+    // Expand shared memory to shared_memory_size
+    ftruncate(shared_memory_fd, shared_memory_size);
+
+    // Map parsed question to shared memory
+    parsed_question = (Question*)mmap(NULL, shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+
+    // Close shared memory fd
+    close(shared_memory_fd);
+
+    if (parsed_question == NULL) 
+    {
+        perror("Error while mapping");
+        exit(EXIT_FAILURE);
+    }
+
+    childPID=fork();
+
+    if ( childPID == -1 ) 
+    {
+        perror("Error while forking");
+        exit(EXIT_FAILURE);
+    }
+    if (childPID  == 0) 
+    {
+        int num_length = (int)((ceil(log10(question_id))+1));
+        char id_repr[num_length];
+        sprintf(id_repr, "%d", question_id);
+        char path[30] = "./questions/";
+        strcat(path, id_repr);   
+        strcat(path, ".txt");    
+
+        FILE* ptr = fopen(path, "r");
+	    if (ptr == NULL) {
+	    	printf("No such file");
+	    	exit(EXIT_FAILURE);
+	    }
+	    char buf[BUFFER_SIZE];
+        fgets(buf, BUFFER_SIZE, ptr);
+        strcpy(parsed_question->question_content, buf);
+        for(int i = 0; i < 4; i++){
+            fgets(buf, sizeof buf, ptr);
+            parsed_question->answers[i].identifier = buf[0];
+            fgets(buf, sizeof buf, ptr);
+            strcpy(parsed_question->answers[i].answer_content, buf);
+        }
+        fgets(buf, sizeof buf, ptr);
+        parsed_question->correct_answer = atoi(buf);    
+        parsed_question->id=question_id;     
+        free(ptr);
+        exit(0);
+    }
+    else
+    {
+        // parent will wait until the child finished
+        wait(&status);
+
+        // now detach the shared memory segment
+        shm_unlink(name);
+        return parsed_question;
+    }
+
+}
+
+
+
 
 int setup_server(){
     struct sockaddr_un name; // Socket type and socket name
@@ -132,12 +234,12 @@ int main(int argc, char *argv[])
     int result;
     int data;
     int ret;
-    int max_fd = 0;
     char buffer[BUFFER_SIZE];
     fd_set readfds;
     intitiaze_monitor_fd_set();
 
     int connection_socket = setup_server();
+    int max_fd = connection_socket;
 
     printf("Server is set up\n");
     
@@ -147,7 +249,7 @@ int main(int argc, char *argv[])
 
         // Copy the entire monitored FDs to readfds
         refresh_fd_set(&readfds);
-
+        printf("Waiting for select system call...\n");
         // Blocking system call, waiting for select call
         select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
