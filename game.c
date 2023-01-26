@@ -76,18 +76,17 @@ void updateScoreBoard(){
         }
 
         char buffer[512] = {'\0'};
-        sprintf(buffer, "fd: %d :: [\n", players[i]->fd) ;
+        sprintf(buffer, "%s\n", players[i]->username) ;
         strcat(tempScoreBoard, buffer);
         memset(buffer, 0, 512); 
         for(int j = 1; j <= question_nr; j++){
             if(players[i]->score[j-1] == -1){
                 continue;
             }
-            sprintf(buffer, "%d -> %s (time: %d),\n", j, players[i]->score[j-1] == 1 ? "Correct" : "Incorrect", players[i]->timeElapsed[j-1]);
+            sprintf(buffer, "\t%d -> %s (time: %d),\n", j, players[i]->score[j-1] == 1 ? "Correct" : "Incorrect", players[i]->timeElapsed[j-1]);
             strcat(tempScoreBoard, buffer);
             memset(buffer, 0, 512); 
         }
-        strcat(tempScoreBoard, "]\n");
     }
     memset(scoreBoard, 0, 512); 
     strcpy(scoreBoard, tempScoreBoard);

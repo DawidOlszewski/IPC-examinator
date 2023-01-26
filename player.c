@@ -13,7 +13,7 @@ void intitiazePlayers(){
     }
 }
 
-void createPlayer(int skt_fd){   
+void createPlayer(int skt_fd, char* username){   
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
         if(players[i] != NULL){
             continue;
@@ -24,7 +24,8 @@ void createPlayer(int skt_fd){
         for(int j = 0; j < QUESTION_NR; j++){
             players[i]->score[j] = -1;
             players[i]->timeElapsed[j] = -1;
-            strcpy(players[i]->lastInfo, "");
+            strncpy(players[i]->lastInfo, "", 127);
+            strncpy(players[i]->username, username, 127);
         }
         max_fd = max(skt_fd, max_fd);
         return;

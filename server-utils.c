@@ -55,7 +55,9 @@ int handle_new_connection(int connection_socket){
 
     if(currentGameState == NOTSTARTED){
         printf("Connection accepted from client\n");
-        createPlayer(data_socket);
+        char buffer[BUFFER_SIZE];
+        check(read(data_socket, buffer, BUFFER_SIZE), "read username\n");
+        createPlayer(data_socket, buffer);
     }else{
         printf("connection closed because game have already started\n");
         check(close(data_socket), "close new data_socket"); //if we want to clase we have to accept it first

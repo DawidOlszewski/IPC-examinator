@@ -8,8 +8,18 @@
 #include"errors.h"
 #include"constants.h"
 
-int main()
+int main(int argc, char* argv[])
 {
+    if(argc != 2){
+        printf("pls pass your username as command-line argument\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(strlen(argv[1]) > BUFFER_SIZE){
+        printf("name is definitely too long :)\n");
+        exit(EXIT_FAILURE);
+    }
+
     struct sockaddr_un addr;
     int data_socket;
     int ret;
@@ -42,7 +52,8 @@ int main()
     check (connect (data_socket, (const struct sockaddr *) &addr,
             sizeof(struct sockaddr_un)), "the server is down");
 
-
+    check(write(data_socket, argv[1], BUFFER_SIZE), "write username");
+    
     while(1){
         FD_ZERO(&read_fd_set);
         FD_SET(0, &read_fd_set);
