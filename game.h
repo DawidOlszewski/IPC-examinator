@@ -1,5 +1,4 @@
 typedef enum gameState{
     NOTSTARTED,
-    INPROGRESS,
-    FINISHED
+    INPROGRESS
 } gameState;

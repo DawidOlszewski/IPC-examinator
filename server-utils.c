@@ -34,8 +34,6 @@ int setup_server(){
         listen(connection_socket, MAX_PLAYER_SUPPORTED), 
             "listen failed");
 
-    add_to_monitored_fd_set(connection_socket);
-
     printf("server is listening...\n");
 
     return connection_socket;

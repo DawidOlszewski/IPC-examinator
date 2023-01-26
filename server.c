@@ -8,9 +8,87 @@
 #include "fd-set-utils.h"
 #include "constants.h"
 #include "global.h"
+#include <string.h>
+
+int everyPlayerFinished(){
+    for(int i = 0; i< MAX_PLAYER_SUPPORTED; i++){
+        if(players[i] == NULL){
+            continue;
+        }
+        if(players[i]->score[question_nr-1] == -1){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int genNewQuestion(){
+    char anwsers[QUESTION_NR] = {'A', 'B', 'C', 'D'}; //TODO: its temporary
+    char* questions[QUESTION_NR] = {"Q: How many eggs are in the basket?\nA: 1\nB: 2\nC: 3\nD: 4\n",
+                                    "Q: How old I am?\nA: 12\nB: 18\nC: 14\nD: 13\n",
+                                    "Q: Do you like her?\nA: No\nB: Yes\nC: No, I love her\nD: Braaaaa\n",
+                                    "Q: Is C high level lang?\nA: Yes\nB: No\nC: Studpied question\nD: Lets waste half of lecture\n"};
+
+    strcpy(currentQuestion, questions[question_nr-1]); 
+    currentAnwser = anwsers[question_nr-1];
+    question_nr++;
+}
+
+char* genView(Player* player){
+    char* buffer = malloc(512 * sizeof(char));
+    if(player->score[question_nr-1] == -1){ //printf is null
+        sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, time, currentQuestion);
+        printf("generated view - question\n");
+        return buffer;
+    }
+
+    sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, time, scoreBoard);
+    printf("generated view - scoreBoard\n");
+    return buffer;
+}
+
+void sendView(Player* player, char* info){
+    if(player == NULL){
+        printf("this player doesn't exist\n");
+        exit(EXIT_FAILURE);
+    }
+    if(info[0] != '\0'){
+        strcpy(player->lastInfo, info);
+    }
+    
+    char* generatedView = genView(player);
+
+    write(player->fd, generatedView, 512* sizeof(char));
+
+    free(generatedView);
+}
 
 
+int updateScoreBoard(){
+    char tempScoreBoard[] = "";
 
+    for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+        if(players[i] == NULL){
+            continue;
+        }
+
+        char buffer[512] = {'\0'};
+        sprintf(buffer, "fd: %d :: [", players[i]->fd) ;
+        strcat(tempScoreBoard, buffer);
+        for(int j = 1; j <= question_nr; j++){
+            if(players[i]->score[j-1] == -1){
+                continue;
+            }
+            sprintf(buffer, "{q: %d a:%d},", j, players[i]->score[j-1]);
+            strcat(tempScoreBoard, buffer);
+        }
+        strcat(tempScoreBoard, "]\n");
+    }
+    strcpy(scoreBoard, tempScoreBoard);
+}
+
+
+//TODO: send question with additional info (like previous input was corrupted pls try again)
 
 int main(int argc, char *argv[])
 {
@@ -20,14 +98,12 @@ int main(int argc, char *argv[])
     char buffer[BUFFER_SIZE];
     fd_set readfds;
 
-    add_to_monitored_fd_set(0); //stdin 
-
     int connection_socket = setup_server();
     max_fd = connection_socket;
 
     while(1) {
         // Copy the entire monitored FDs to readfds
-        refresh_fd_set(&readfds);
+        refresh_fd_set(&readfds, connection_socket);
 
         // Blocking system call, waiting for select call
         select(max_fd + 1, &readfds, NULL, NULL, NULL);
@@ -47,7 +123,17 @@ int main(int argc, char *argv[])
             buffer[ret] = '\0';
             
             if(strncmp(buffer, "start", 5) == 0 ){
+                currentGameState = INPROGRESS;
                 printf("game - started\n");
+
+                //TODO: it should be wrapped in function nextQuestion()
+                genNewQuestion();
+                for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    if(players[i] == NULL){
+                        continue;
+                    }
+                    sendView(players[i], "game started - first question");
+                }
             }else{
                 printf("print \"start\" to start game\n");
             }
@@ -76,16 +162,66 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            // for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
-            //     // Send data to every client except master and data sender
-            //     if(monitored_fd_set[i] == -1 || monitored_fd_set[i] == connection_socket || monitored_fd_set[i] == data_socket)
-            //         continue;
+            printf("%s\n", buffer);
 
-            //     check(
-            //         write(monitored_fd_set[i], buffer, BUFFER_SIZE),
-            //             "write to recv failed");
-            // }            
-            
+            if(currentGameState == NOTSTARTED){
+                printf("player tried to send sth, but the game hasn't started yet\n");
+                continue;
+            }
+
+            if(currentGameState == INPROGRESS){
+                Player* player = get_player_by_fd(data_socket);
+
+                if(player->score[question_nr-1] != -1){
+                    printf("the player has already answered this question\n");
+                    continue;
+                }
+
+                if(buffer[1] != 10 || buffer[2] != 0){
+                    printf("\n");
+                    for(int i = 0; i < 5; i++){
+                        printf("%d ", buffer[i]);
+                    }
+                    printf("\n");
+
+                    printf("the client send answer in wrong format therefore it will be ignored\n");
+                    sendView(player, "wrong format of answer try again (just one letter)");
+                    continue;
+                }
+
+                if(buffer[0] == currentAnwser){ 
+                    player->score[question_nr-1] = 1;
+                    player->timeElapsed[question_nr-1] = 0; //TODO: put correct number of seconds ellapsed;
+                    sendView(player, "good job");
+                }else{
+                    player->score[question_nr-1] = 0;
+                    sendView(player, "bad anwser");
+                }
+                updateScoreBoard();
+                printf("updated score board : %s\n", scoreBoard);
+
+                //send updated score board
+                for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    if(players[i] == NULL){
+                        continue;
+                    }
+                    if(players[i]->score[question_nr-1] != -1){
+                        sendView(players[i], "new anwser arrived");
+                    }
+                }
+
+
+                if(everyPlayerFinished() == 1){ 
+                    printf("new q\n");
+                    genNewQuestion();
+                    for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                        if(players[i] == NULL){
+                            continue;
+                        }
+                        sendView(players[i], "everyone finished - new question");
+                    }
+                }
+            }  
         }
     } 
 
