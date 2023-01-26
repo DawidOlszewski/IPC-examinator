@@ -5,9 +5,10 @@
 #include <unistd.h>
 #include "errors.h"
 #include "server-utils.h"
-#include "fd-set-utils.h"
+#include "player.h"
 #include "constants.h"
 #include "global.h"
+#include "stopwatch.h"
 
 int main()
 {
@@ -15,6 +16,7 @@ int main()
     int ret;
     char buffer[BUFFER_SIZE];
     fd_set readfds;
+    pthread_t time_thread;
 
     int connection_socket = setup_server();
     max_fd = connection_socket;
@@ -56,6 +58,7 @@ int main()
                 printf("game - started\n");
 
                 //TODO: it should be wrapped in function nextQuestion()
+                startStopwatch(&time_thread);
                 genNewQuestion();
                 for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
                     if(players[i] == NULL){
@@ -116,11 +119,12 @@ int main()
  
                 if(buffer[0] == currentAnwser){ //TODO: it should be splitted somehow
                     player->score[question_nr-1] = 1;
-                    player->timeElapsed[question_nr-1] = 0; //TODO: put correct number of seconds ellapsed;
+                    player->timeElapsed[question_nr-1] = getTime(); 
                     updateScoreBoard();
                     sendView(player, "good job");
                 }else{
                     player->score[question_nr-1] = 0;
+                    player->timeElapsed[question_nr-1] = getTime(); 
                     updateScoreBoard();
                     sendView(player, "bad anwser");
                 }
@@ -139,7 +143,9 @@ int main()
                 if(everyPlayerFinished() == 1){ 
                     printf("Everyone finished.\n");
                     ret = genNewQuestion();
+                    stopStopwatch(time_thread);
                     sleep(3);
+                    startStopwatch(&time_thread);
                     if(ret == 1){
                         break;
                     }
@@ -155,7 +161,10 @@ int main()
         }
     } 
 
+    stopStopwatch(time_thread);
+
     //TODO: send the score board to players;
+
 
     // Close the connection socket
     close_server(connection_socket);

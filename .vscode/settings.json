@@ -4,6 +4,10 @@
     "game.h": "c",
     "errors.h": "c",
     "stdlib.h": "c",
-    "select.h": "c"
+    "select.h": "c",
+    "time.h": "c",
+    "limits": "c",
+    "*.tcc": "c",
+    "type_traits": "c"
   }
 }

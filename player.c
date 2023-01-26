@@ -21,7 +21,7 @@ void createPlayer(int skt_fd){
         players[i] = malloc(sizeof(Player));
         players[i] -> fd = skt_fd;
 
-        for(int j =0; j < QUESTION_NR; j++){
+        for(int j = 0; j < QUESTION_NR; j++){
             players[i]->score[j] = -1;
             players[i]->timeElapsed[j] = -1;
             strcpy(players[i]->lastInfo, "");

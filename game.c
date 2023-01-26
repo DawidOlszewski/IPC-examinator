@@ -7,6 +7,7 @@
 #include"player.h"
 #include"errors.h"
 #include"game.h"
+#include"stopwatch.h"
 
 int everyPlayerFinished(){
     for(int i = 0; i< MAX_PLAYER_SUPPORTED; i++){
@@ -39,13 +40,13 @@ int genNewQuestion(){
 char* genView(Player* player){
     char* buffer = malloc(512 * sizeof(char));
     memset(buffer, 0, 512);
-    if(player->score[question_nr-1] == -1){ //printf is null
-        sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, time, currentQuestion);
+    if(player->score[question_nr-1] == -1){ 
+        sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, getTime(), currentQuestion);
         printf("generated view - question\n");
         return buffer;
     }
 
-    sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, time, scoreBoard);
+    sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, getTime(), scoreBoard);
     printf("generated view - scoreBoard\n");
     return buffer;
 }
@@ -55,7 +56,7 @@ void sendView(Player* player, char* info){
         printf("this player doesn't exist\n");
         exit(EXIT_FAILURE);
     }
-    if(info[0] != '\0'){
+    if(info != NULL){
         strcpy(player->lastInfo, info);
     }
     
@@ -82,7 +83,7 @@ void updateScoreBoard(){
             if(players[i]->score[j-1] == -1){
                 continue;
             }
-            sprintf(buffer, "{q: %d a:%d},\n", j, players[i]->score[j-1]);
+            sprintf(buffer, "%d -> %s (time: %d),\n", j, players[i]->score[j-1] == 1 ? "Correct" : "Incorrect", players[i]->timeElapsed[j-1]);
             strcat(tempScoreBoard, buffer);
             memset(buffer, 0, 512); 
         }
