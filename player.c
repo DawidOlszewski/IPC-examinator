@@ -7,13 +7,13 @@
 #define max(x, y) x > y ? x : y
 
 
-void intitiaze_monitor_fd_set(){     
+void intitiazePlayers(){     
     for(int i = 0 ; i < MAX_PLAYER_SUPPORTED; i++){
         players[i] = NULL;
     }
 }
 
-void add_to_monitored_fd_set(int skt_fd){   
+void createPlayer(int skt_fd){   
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
         if(players[i] != NULL){
             continue;
@@ -33,18 +33,18 @@ void add_to_monitored_fd_set(int skt_fd){
 }
 
 // Remove the FD from players[ array
-void remove_from_monitored_fd_set(int skt_fd){
+void removePlayer(Player* player){
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
-        if(players[i] != NULL || players[i]->fd != skt_fd)
-            continue;
-        free(players[i]);
-        players[i] = NULL;
-        break;
+        if(players[i] == player){
+            free(players[i]);
+            players[i] = NULL;
+            break;
+        }
     }
 }
 
 // Copy monitored fds to fd_set
-void refresh_fd_set(fd_set *fd_set_ptr, int connectionSocket){
+void getPlayersFds(fd_set *fd_set_ptr, int connectionSocket){
     FD_ZERO(fd_set_ptr);
     FD_SET(0, fd_set_ptr);
     FD_SET(connectionSocket, fd_set_ptr);
@@ -56,7 +56,7 @@ void refresh_fd_set(fd_set *fd_set_ptr, int connectionSocket){
     }
 }
 
-int get_ready_fd(fd_set* readfds){
+int getReadyFd(fd_set* readfds){
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
         if(FD_ISSET(i, readfds)){
             return i;
@@ -67,7 +67,7 @@ int get_ready_fd(fd_set* readfds){
 }
 
 
-Player* get_player_by_fd(int fd){
+Player* getPlayerByFd(int fd){
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
         if(players[i] != NULL && players[i]->fd == fd){
             return players[i];
@@ -75,4 +75,9 @@ Player* get_player_by_fd(int fd){
     }
     printf("cannot found player with this fd set\n");
     exit(EXIT_FAILURE);
+}
+
+Player* getReadyPlayer(fd_set* readfds){
+    int fd = getReadyFd(readfds);
+    return getPlayerByFd(fd);
 }

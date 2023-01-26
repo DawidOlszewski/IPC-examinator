@@ -6,6 +6,7 @@
 #include"global.h"
 #include"player.h"
 #include"errors.h"
+#include"game.h"
 
 int everyPlayerFinished(){
     for(int i = 0; i< MAX_PLAYER_SUPPORTED; i++){
@@ -19,16 +20,20 @@ int everyPlayerFinished(){
     return 1;
 }
 
-void genNewQuestion(){
+int genNewQuestion(){
+    if(question_nr == QUESTION_NR){
+        return 1;
+    }
     char anwsers[QUESTION_NR] = {'A', 'B', 'C', 'D'}; //TODO: its temporary
     char* questions[QUESTION_NR] = {"Q: How many eggs are in the basket?\nA: 1\nB: 2\nC: 3\nD: 4\n",
                                     "Q: How old I am?\nA: 12\nB: 18\nC: 14\nD: 13\n",
                                     "Q: Do you like her?\nA: No\nB: Yes\nC: No, I love her\nD: Braaaaa\n",
                                     "Q: Is C high level lang?\nA: Yes\nB: No\nC: Studpied question\nD: Lets waste half of lecture\n"};
 
-    strcpy(currentQuestion, questions[question_nr-1]); 
-    currentAnwser = anwsers[question_nr-1];
+    strcpy(currentQuestion, questions[question_nr]); 
+    currentAnwser = anwsers[question_nr];
     question_nr++;
+    return 0;
 }
 
 char* genView(Player* player){

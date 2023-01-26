@@ -2,6 +2,7 @@
 #include<sys/socket.h>
 #include<sys/un.h>
 #include<unistd.h>
+#include<stdio.h>
 #include"fd-set-utils.h"
 #include"errors.h"
 #include"constants.h"
@@ -54,7 +55,7 @@ int handle_new_connection(int connection_socket){
 
     if(currentGameState == NOTSTARTED){
         printf("Connection accepted from client\n");
-        add_to_monitored_fd_set(data_socket);
+        createPlayer(data_socket);
     }else{
         printf("connection closed because game have already started\n");
         check(close(data_socket), "close new data_socket"); //if we want to clase we have to accept it first

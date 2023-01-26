@@ -1,3 +1,6 @@
+#include<sys/select.h>
+#include"constants.h"
+
 #ifndef playerheader
 #define playerheader
 
@@ -7,5 +10,14 @@ typedef struct Player{
     int fd;
     char lastInfo[128];
 } Player;
+
+
+
+void intitiazePlayers();
+void createPlayer(int skt_fd);
+void removePlayer(Player* player);
+void getPlayersFds(fd_set *fd_set_ptr, int connectionSocket);
+int getReadyFd(fd_set* readfds);
+Player* getReadyPlayer(fd_set* readfds);
 
 #endif

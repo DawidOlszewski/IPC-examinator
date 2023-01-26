@@ -11,8 +11,7 @@
 
 int main()
 {
-    intitiaze_monitor_fd_set();
-    int data_socket;
+    intitiazePlayers();
     int ret;
     char buffer[BUFFER_SIZE];
     fd_set readfds;
@@ -22,14 +21,15 @@ int main()
 
     while(1) {
         // Copy the entire monitored FDs to readfds
-        refresh_fd_set(&readfds, connection_socket);
+        getPlayersFds(&readfds, connection_socket);
 
         // Blocking system call, waiting for select call
         select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
-        printf("new msg\n");
+        printf("new msg arrived\n");
 
         if(FD_ISSET(0, &readfds)){
+            //when the game is in progress but you wanna check store it server terminal
             if(currentGameState != NOTSTARTED){
                 check(read(0, buffer, 1), "read when reading from stdin when game started");
                 printf("\n\nSCOREBORAD\n\n%s\n", scoreBoard);
@@ -69,29 +69,25 @@ int main()
         }
         else if(FD_ISSET(connection_socket, &readfds)){
             // Select call to master fd, new client connection
-
-            data_socket = handle_new_connection(connection_socket);
-
+            handle_new_connection(connection_socket);
         }
         else // Connected client made selected call
         {
-            // Find the client which has send us the call
-            data_socket = get_ready_fd(&readfds);
+            // Find the player which has send us the call
+            Player* player = getReadyPlayer(&readfds);
 
             // Prepare the buffer to recv the data
             memset(buffer, 0, BUFFER_SIZE);
 
             // Blocking system call, waiting for data from client
-            ret = read(data_socket, buffer, BUFFER_SIZE);
+            ret = read(player->fd, buffer, BUFFER_SIZE);
             
             // Read returns zero if socket disconnects
             if(ret == 0){
                 printf("Client disconnected\n");
-                remove_from_monitored_fd_set(data_socket);
+                removePlayer(player);
                 continue;
             }
-
-            // printf("%s\n", buffer);
 
             if(currentGameState == NOTSTARTED){
                 printf("player tried to send sth, but the game hasn't started yet\n");
@@ -99,13 +95,13 @@ int main()
             }
 
             if(currentGameState == INPROGRESS){
-                Player* player = get_player_by_fd(data_socket);
 
                 if(player->score[question_nr-1] != -1){
                     printf("the player has already answered this question\n");
                     continue;
                 }
 
+                //when the buffer is corrupted we read \n \0 from stdin in client
                 if(buffer[1] != 10 || buffer[2] != 0){
                     printf("\n");
                     for(int i = 0; i < 5; i++){
@@ -128,7 +124,6 @@ int main()
                     updateScoreBoard();
                     sendView(player, "bad anwser");
                 }
-                printf("updated score board : %s\n", scoreBoard);
 
                 //send updated score board
                 for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
@@ -142,10 +137,14 @@ int main()
 
 
                 if(everyPlayerFinished() == 1){ 
-                    printf("Everyone finished. Generating new question\n");
-                    genNewQuestion();
+                    printf("Everyone finished.\n");
+                    ret = genNewQuestion();
                     sleep(3);
+                    if(ret == 1){
+                        break;
+                    }
                     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    printf("Generating new question.\n");
                         if(players[i] == NULL){
                             continue;
                         }
@@ -155,6 +154,8 @@ int main()
             }  
         }
     } 
+
+    //TODO: send the score board to players;
 
     // Close the connection socket
     close_server(connection_socket);

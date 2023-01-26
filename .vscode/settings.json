@@ -1,5 +1,9 @@
 {
   "files.associations": {
-    "player.h": "c"
+    "player.h": "c",
+    "game.h": "c",
+    "errors.h": "c",
+    "stdlib.h": "c",
+    "select.h": "c"
   }
 }
