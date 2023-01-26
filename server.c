@@ -22,7 +22,7 @@ int everyPlayerFinished(){
     return 1;
 }
 
-int genNewQuestion(){
+void genNewQuestion(){
     char anwsers[QUESTION_NR] = {'A', 'B', 'C', 'D'}; //TODO: its temporary
     char* questions[QUESTION_NR] = {"Q: How many eggs are in the basket?\nA: 1\nB: 2\nC: 3\nD: 4\n",
                                     "Q: How old I am?\nA: 12\nB: 18\nC: 14\nD: 13\n",
@@ -36,6 +36,7 @@ int genNewQuestion(){
 
 char* genView(Player* player){
     char* buffer = malloc(512 * sizeof(char));
+    memset(buffer, 0, 512);
     if(player->score[question_nr-1] == -1){ //printf is null
         sprintf(buffer, "[info: %s] [time: %d]\n%s", player->lastInfo, time, currentQuestion);
         printf("generated view - question\n");
@@ -58,14 +59,15 @@ void sendView(Player* player, char* info){
     
     char* generatedView = genView(player);
 
-    write(player->fd, generatedView, 512* sizeof(char));
+    check(write(player->fd, generatedView, 512* sizeof(char)), "write in sendView");
 
     free(generatedView);
 }
 
 
-int updateScoreBoard(){
-    char tempScoreBoard[] = "";
+void updateScoreBoard(){
+    char tempScoreBoard[512] = {'\0'};
+    // printf("BEFORE:\n%s\n", scoreBoard);
 
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
         if(players[i] == NULL){
@@ -73,24 +75,29 @@ int updateScoreBoard(){
         }
 
         char buffer[512] = {'\0'};
-        sprintf(buffer, "fd: %d :: [", players[i]->fd) ;
+        sprintf(buffer, "fd: %d :: [\n", players[i]->fd) ;
+        // printf("%s\n", buffer);
         strcat(tempScoreBoard, buffer);
+        memset(buffer, 0, 512); //CONT
         for(int j = 1; j <= question_nr; j++){
             if(players[i]->score[j-1] == -1){
                 continue;
             }
-            sprintf(buffer, "{q: %d a:%d},", j, players[i]->score[j-1]);
+            sprintf(buffer, "{q: %d a:%d},\n", j, players[i]->score[j-1]);
             strcat(tempScoreBoard, buffer);
+            memset(buffer, 0, 512); //CONT
         }
         strcat(tempScoreBoard, "]\n");
     }
+    memset(scoreBoard, 0, 512); //CONT
     strcpy(scoreBoard, tempScoreBoard);
+    // printf("AFTER:\n%s\n\n", scoreBoard);
 }
 
 
 //TODO: send question with additional info (like previous input was corrupted pls try again)
 
-int main(int argc, char *argv[])
+int main()
 {
     intitiaze_monitor_fd_set();
     int data_socket;
@@ -111,6 +118,12 @@ int main(int argc, char *argv[])
         printf("new msg\n");
 
         if(FD_ISSET(0, &readfds)){
+            if(currentGameState != NOTSTARTED){
+                check(read(0, buffer, 1), "read when reading from stdin when game started");
+                printf("\n\nSCOREBORAD\n\n%s\n", scoreBoard);
+                memset(scoreBoard, 0, 512); //TODO: dleete
+                continue;
+            }
             memset(buffer, 0, BUFFER_SIZE);
 
             ret = read(0, buffer, BUFFER_SIZE);
@@ -123,6 +136,10 @@ int main(int argc, char *argv[])
             buffer[ret] = '\0';
             
             if(strncmp(buffer, "start", 5) == 0 ){
+                if(currentGameState == INPROGRESS){
+                    printf("game is already in progress\n");
+                    continue;
+                }
                 currentGameState = INPROGRESS;
                 printf("game - started\n");
 
@@ -162,7 +179,7 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            printf("%s\n", buffer);
+            // printf("%s\n", buffer);
 
             if(currentGameState == NOTSTARTED){
                 printf("player tried to send sth, but the game hasn't started yet\n");
@@ -188,21 +205,22 @@ int main(int argc, char *argv[])
                     sendView(player, "wrong format of answer try again (just one letter)");
                     continue;
                 }
-
-                if(buffer[0] == currentAnwser){ 
+ 
+                if(buffer[0] == currentAnwser){ //TODO: it should be splitted somehow
                     player->score[question_nr-1] = 1;
                     player->timeElapsed[question_nr-1] = 0; //TODO: put correct number of seconds ellapsed;
+                    updateScoreBoard();
                     sendView(player, "good job");
                 }else{
                     player->score[question_nr-1] = 0;
+                    updateScoreBoard();
                     sendView(player, "bad anwser");
                 }
-                updateScoreBoard();
                 printf("updated score board : %s\n", scoreBoard);
 
                 //send updated score board
                 for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
-                    if(players[i] == NULL){
+                    if(players[i] == NULL || players[i] == player){
                         continue;
                     }
                     if(players[i]->score[question_nr-1] != -1){
@@ -212,8 +230,9 @@ int main(int argc, char *argv[])
 
 
                 if(everyPlayerFinished() == 1){ 
-                    printf("new q\n");
+                    printf("Everyone finished. Generating new question\n");
                     genNewQuestion();
+                    sleep(1);
                     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
                         if(players[i] == NULL){
                             continue;

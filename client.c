@@ -8,12 +8,11 @@
 #include"errors.h"
 #include"constants.h"
 
-int main(int argc, char *argv[])
+int main()
 {
     struct sockaddr_un addr;
-    int i;
-    int ret;
     int data_socket;
+    int ret;
     char buffer[BUFFER_SIZE];
     fd_set read_fd_set;
 
@@ -52,6 +51,8 @@ int main(int argc, char *argv[])
         
         check(select(data_socket + 1, &read_fd_set, NULL, NULL, NULL), "select");
 
+        system("clear");  
+
         memset(buffer, 0, BUFFER_SIZE);
 
         if(FD_ISSET(0, &read_fd_set)){
@@ -59,7 +60,11 @@ int main(int argc, char *argv[])
             check(write(data_socket, buffer, BUFFER_SIZE), "write");
         }
         else{
-            check(read(data_socket, buffer, BUFFER_SIZE), "read client - from server");
+            ret = check(read(data_socket, buffer, BUFFER_SIZE), "read client - from server");
+            if(ret == 0){
+                printf("server is down, closing\n");
+                exit(EXIT_FAILURE);
+            }
             printf("%s", buffer); //the \n is send also
         }
     }

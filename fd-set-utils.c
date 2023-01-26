@@ -62,6 +62,8 @@ int get_ready_fd(fd_set* readfds){
             return i;
         }
     }
+    printf("cannot get fd\n");
+    exit(EXIT_FAILURE);
 }
 
 
