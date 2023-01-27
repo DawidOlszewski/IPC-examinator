@@ -27,7 +27,7 @@ there are two options:
 
 * using docker:
   
-   `docker run -itd --name ipc-examinator`
+   `docker run -itd --name ipc-examinator dawidolszewski/ipc-examinator:0.0.1`
 
 2. run server `./server.o` (this is our broker, in this terminal we can see the logs and get the score board. We can also finish the game by simple closing this process)
 3. run as many clients as you wish (everyone should be in its own terminal) `./client.o {username of player}` example `./client.o Dawid`
