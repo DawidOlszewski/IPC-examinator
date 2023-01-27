@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include"errors.h"
-#include"constants.h"
+#include "errors.h"
+#include "constants.h"
 
 int main(int argc, char* argv[])
 {
@@ -52,7 +53,7 @@ int main(int argc, char* argv[])
     check (connect (data_socket, (const struct sockaddr *) &addr,
             sizeof(struct sockaddr_un)), "the server is down");
 
-    check(write(data_socket, argv[1], BUFFER_SIZE), "write username");
+    check(write(data_socket, argv[1], strlen(argv[1])), "write username");
     
     while(1){
         FD_ZERO(&read_fd_set);
