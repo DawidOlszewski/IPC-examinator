@@ -1,0 +1,1 @@
+int check(int response, char* message);

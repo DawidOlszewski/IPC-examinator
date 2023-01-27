@@ -1,204 +1,174 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <sys/select.h>
 #include <unistd.h>
+#include "errors.h"
+#include "server-utils.h"
+#include "player.h"
+#include "constants.h"
+#include "global.h"
+#include "stopwatch.h"
 
-#define SOCKET_NAME "/tmp/DemoSocket"
-#define BUFFER_SIZE 128
-
-#define MAX_CLIENT_SUPPORTED  32
-
-#define max(x, y) x > y ? x : y
-
-/*An array of File descriptors which the server process
- * is maintaining in order to talk with the connected clients.
- * Master skt FD is also a member of this array*/
-int monitored_fd_set[MAX_CLIENT_SUPPORTED];
-
-/* Each connected client's intermediate result is 
- * maintained in this client array. */
-
-// Remove all the FDs, if any, from the the array
-static void intitiaze_monitor_fd_set(){
-    for(int i = 0 ; i < MAX_CLIENT_SUPPORTED; i++)
-        monitored_fd_set[i] = -1;
-}
-
-// Add a new FD to the monitored_fd_set array
-static void add_to_monitored_fd_set(int skt_fd){
-    for(int i = 0; i < MAX_CLIENT_SUPPORTED; i++){
-
-        if(monitored_fd_set[i] != -1)
-            continue;
-        monitored_fd_set[i] = skt_fd;
-        break;
-    }
-}
-
-// Remove the FD from monitored_fd_set array
-static void
-remove_from_monitored_fd_set(int skt_fd){
-
-    for(int i = 0; i < MAX_CLIENT_SUPPORTED; i++){
-
-        if(monitored_fd_set[i] != skt_fd)
-            continue;
-
-        monitored_fd_set[i] = -1;
-        break;
-    }
-}
-
-// Copy monitored sockets to fd_set
-static void
-refresh_fd_set(fd_set *fd_set_ptr){
-
-    FD_ZERO(fd_set_ptr);
-    int i = 0;
-    for(; i < MAX_CLIENT_SUPPORTED; i++){
-        if(monitored_fd_set[i] != -1){
-            FD_SET(monitored_fd_set[i], fd_set_ptr);
-        }
-    }
-}
-
-int check(int response, char* message){
-    if (response == -1) {
-        perror(message);
-        exit(EXIT_FAILURE);
-    }
-    return response;
-
-}
-
-
-int setup_server(){
-    struct sockaddr_un name; // Socket type and socket name
-    int connection_socket;
-    // In case some process is already listening on our socket name
-    unlink(SOCKET_NAME);
-
-    // create master file descriptor in stream type connection 
-    connection_socket = check(
-            socket(AF_UNIX, SOCK_STREAM, 0), 
-                "creating connection socket failed");
-
-    // Initializing connection socket struct
-    memset(&name, 0, sizeof(struct sockaddr_un));
-
-    // Providing socket family and socket name
-    name.sun_family = AF_UNIX;
-    strncpy(name.sun_path, SOCKET_NAME, sizeof(name.sun_path) - 1);
-
-    // Bind socket to socket name, every request sent to socket name will be redirected to our server 
-    check(
-        bind(connection_socket, (const struct sockaddr *) &name, sizeof(struct sockaddr_un)),
-            "bind failed");
-
-    check(
-        listen(connection_socket, MAX_CLIENT_SUPPORTED), 
-            "listen failed");
-
-    return connection_socket;
-}
-
-int add_client(int connection_socket){
-    // Master socket call, new client connects
-    printf("New connection recieved, accept the connection\n");
-
-    int data_socket = check(accept(connection_socket, NULL, NULL), 
-                    "accept failed");
-
-    printf("Connection accepted from client\n");
-
-    add_to_monitored_fd_set(data_socket);
-
-    return data_socket;
-}
-
-int get_ready_fd(fd_set* readfds, int max_fd){
-    for(int i = 0; i < max_fd; i++)
-        if(FD_ISSET(i, readfds))
-            return i;
-}   
-
-
-
-int main(int argc, char *argv[])
+int main()
 {
-    int data_socket;
-    int result;
-    int data;
+    intitiazePlayers();
     int ret;
-    int max_fd = 0;
     char buffer[BUFFER_SIZE];
     fd_set readfds;
-    intitiaze_monitor_fd_set();
+    pthread_t time_thread;
 
     int connection_socket = setup_server();
-
-    printf("Server is set up\n");
-    
-    add_to_monitored_fd_set(connection_socket);
+    max_fd = connection_socket;
 
     while(1) {
-
         // Copy the entire monitored FDs to readfds
-        refresh_fd_set(&readfds);
+        getPlayersFds(&readfds, connection_socket);
 
         // Blocking system call, waiting for select call
         select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
+        printf("new msg arrived\n");
 
-        if(FD_ISSET(connection_socket, &readfds)){
+        if(FD_ISSET(0, &readfds)){
+            //when the game is in progress but you wanna check store it server terminal
+            if(currentGameState != NOTSTARTED){
+                check(read(0, buffer, 1), "read when reading from stdin when game started");
+                printf("\n\nSCOREBORAD\n\n%s\n", scoreBoard);
+                memset(scoreBoard, 0, 512); //TODO: dleete
+                continue;
+            }
+            memset(buffer, 0, BUFFER_SIZE);
+
+            ret = read(0, buffer, BUFFER_SIZE);
+
+            if(ret == -1){
+                perror("read server - from stdin");
+                exit(EXIT_FAILURE);
+            }
+
+            buffer[ret] = '\0';
+            
+            if(strncmp(buffer, "start", 5) == 0 ){
+                if(currentGameState == INPROGRESS){
+                    printf("game is already in progress\n");
+                    continue;
+                }
+                currentGameState = INPROGRESS;
+                printf("game - started\n");
+
+                //TODO: it should be wrapped in function nextQuestion()
+                startStopwatch(&time_thread);
+                genNewQuestion();
+                for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    if(players[i] == NULL){
+                        continue;
+                    }
+                    sendView(players[i], "game started - first question");
+                }
+            }else{
+                printf("print \"start\" to start game\n");
+            }
+        }
+        else if(FD_ISSET(connection_socket, &readfds)){
             // Select call to master fd, new client connection
-            data_socket = add_client(connection_socket);
-
-            // Keep track of biggest fd
-            max_fd = max(max_fd, data_socket);            
+            handle_new_connection(connection_socket);
         }
         else // Connected client made selected call
         {
-            // Find the client which has send us the call
-            data_socket = get_ready_fd(&readfds, max_fd);
+            // Find the player which has send us the call
+            Player* player = getReadyPlayer(&readfds);
 
             // Prepare the buffer to recv the data
             memset(buffer, 0, BUFFER_SIZE);
 
             // Blocking system call, waiting for data from client
-            ret = read(data_socket, buffer, BUFFER_SIZE);
+            ret = read(player->fd, buffer, BUFFER_SIZE);
             
             // Read returns zero if socket disconnects
             if(ret == 0){
                 printf("Client disconnected\n");
-                remove_from_monitored_fd_set(data_socket);
+                removePlayer(player);
                 continue;
             }
 
-            for(int i = 0; i < max_fd; i++){
-                // Send data to every client except master and data sender
-                if(monitored_fd_set[i] == -1 || monitored_fd_set[i] == connection_socket || monitored_fd_set[i] == data_socket)
-                    continue;
+            if(currentGameState == NOTSTARTED){
+                printf("player tried to send sth, but the game hasn't started yet\n");
+                continue;
+            }
 
-                check(
-                    write(monitored_fd_set[i], buffer, BUFFER_SIZE),
-                        "write to recv failed");
-    
-            }            
-            
+            if(currentGameState == INPROGRESS){
+
+                if(player->score[question_nr-1] != -1){
+                    printf("the player has already answered this question\n");
+                    continue;
+                }
+
+                //when the buffer is corrupted we read \n \0 from stdin in client
+                if(buffer[1] != 10 || buffer[2] != 0){
+                    printf("\n");
+                    for(int i = 0; i < 5; i++){
+                        printf("%d ", buffer[i]);
+                    }
+                    printf("\n");
+
+                    printf("the client send answer in wrong format therefore it will be ignored\n");
+                    sendView(player, "wrong format of answer try again (just one letter)");
+                    continue;
+                }
+ 
+                if(buffer[0] == currentAnwser){ //TODO: it should be splitted somehow
+                    player->score[question_nr-1] = 1;
+                    player->timeElapsed[question_nr-1] = getTime(); 
+                    updateScoreBoard();
+                    sendView(player, "good job");
+                }else{
+                    player->score[question_nr-1] = 0;
+                    player->timeElapsed[question_nr-1] = getTime(); 
+                    updateScoreBoard();
+                    sendView(player, "bad anwser");
+                }
+
+                //send updated score board
+                for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    if(players[i] == NULL || players[i] == player){
+                        continue;
+                    }
+                    if(players[i]->score[question_nr-1] != -1){
+                        sendView(players[i], "new anwser arrived");
+                    }
+                }
+
+
+                if(everyPlayerFinished() == 1){ 
+                    printf("Everyone finished.\n");
+                    ret = genNewQuestion();
+                    stopStopwatch(time_thread);
+                    sleep(3);
+                    startStopwatch(&time_thread);
+                    if(ret == 1){
+                        break;
+                    }
+                    for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+                    printf("Generating new question.\n");
+                        if(players[i] == NULL){
+                            continue;
+                        }
+                        sendView(players[i], "everyone finished - new question");
+                    }
+                }
+            }  
         }
     } 
 
+    stopStopwatch(time_thread);
+
+    //TODO: send the score board to players;
+
+
     // Close the connection socket
-    close(connection_socket);
+    close_server(connection_socket);
 
-    FD_ZERO(&readfds);
-    printf("Connection closed..\n");
-
-    
     // Unlink the socket
-    unlink(SOCKET_NAME);
     exit(EXIT_SUCCESS);
 }
