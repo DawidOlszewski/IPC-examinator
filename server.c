@@ -18,17 +18,21 @@
 #define SOCKET_NAME "/tmp/DemoSocket"
 #define BUFFER_SIZE 128
 
+#define PATH_LENGTH 64
+#define QUESTION_PATH "./questions/"
 
-#define MAX_CLIENT_SUPPORTED  32
+#define MAX_CLIENT_SUPPORTED 32
 
 #define max(x, y) x > y ? x : y
 
-typedef struct Answer{
+typedef struct Answer
+{
     char identifier;
     char answer_content[BUFFER_SIZE];
 } Answer;
 
-typedef struct Question{
+typedef struct Question
+{
     int id;
     char question_content[BUFFER_SIZE];
     Answer answers[4];
@@ -36,19 +40,31 @@ typedef struct Question{
 } Question;
 
 
-Question* parse_question(int question_id){
-    pid_t childPID;
-    int status;
+void path_from_id(char *path, int id)
+{
+    // Convert id to string
+    int num_length = (int)((ceil(log10(id)) + 1));
+    char id_repr[num_length];
+    sprintf(id_repr, "%d", id);
+
+    strcat(path, QUESTION_PATH);
+    strcat(path, id_repr);
+    strcat(path, ".txt");
+}
+
+Question *allocate_shared_memory(const char *name)
+{
     int shared_memory_fd;
-    int shared_memory_size; 
-    Question* parsed_question;
-    const char *name = "QUESTION_OBJECT";
+    int shared_memory_size;
+
     shared_memory_size = sizeof(Question);
+    
     // In case of unexpected error in parser clear shared memory
     shm_unlink(name);
 
-    shared_memory_fd = shm_open (name, O_CREAT | O_EXCL | O_RDWR, S_IRWXU | S_IRWXG);
-    if (shared_memory_fd < 0) {
+    shared_memory_fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRWXU | S_IRWXG);
+    if (shared_memory_fd < 0)
+    {
         perror("Error allocating shared memory");
         exit(EXIT_FAILURE);
     }
@@ -59,65 +75,86 @@ Question* parse_question(int question_id){
     ftruncate(shared_memory_fd, shared_memory_size);
 
     // Map parsed question to shared memory
-    parsed_question = (Question*)mmap(NULL, shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    Question* parsed_question = (Question *)mmap(NULL, shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
 
     // Close shared memory fd
     close(shared_memory_fd);
 
-    if (parsed_question == NULL) 
+    return parsed_question;
+}
+
+void parse_question_from_file(char *path, Question *parsed_question, int question_id)
+{
+    FILE *ptr = fopen(path, "r");
+    if (ptr == NULL)
+    {
+        printf("No such file");
+        exit(EXIT_FAILURE);
+    }
+
+    // get question content
+    char buf[BUFFER_SIZE];
+    fgets(buf, BUFFER_SIZE, ptr);
+    strcpy(parsed_question->question_content, buf);
+
+    // get all answers
+    for (int i = 0; i < 4; i++)
+    {
+        fgets(buf, BUFFER_SIZE, ptr);
+        parsed_question->answers[i].identifier = buf[0];
+
+        fgets(buf, BUFFER_SIZE, ptr);
+        strcpy(parsed_question->answers[i].answer_content, buf);
+    }
+
+    // get correct answer index
+    fgets(buf, BUFFER_SIZE, ptr);
+    parsed_question->correct_answer = atoi(buf);
+    
+    parsed_question->id = question_id;
+    free(ptr);
+}
+
+Question *get_question(int question_id)
+{
+    const char *name = "QUESTION_OBJECT";
+
+    Question *parsed_question = allocate_shared_memory(name);
+
+    if (parsed_question == NULL)
     {
         perror("Error while mapping");
         exit(EXIT_FAILURE);
     }
 
-    childPID=fork();
+    pid_t childPID = fork();
+    int status;
 
-    if ( childPID == -1 ) 
+    if (childPID == -1)
     {
         perror("Error while forking");
         exit(EXIT_FAILURE);
     }
-    if (childPID  == 0) 
+    if (childPID == 0)
     {
-        int num_length = (int)((ceil(log10(question_id))+1));
-        char id_repr[num_length];
-        sprintf(id_repr, "%d", question_id);
-        char path[30] = "./questions/";
-        strcat(path, id_repr);   
-        strcat(path, ".txt");    
 
-        FILE* ptr = fopen(path, "r");
-	    if (ptr == NULL) {
-	    	printf("No such file");
-	    	exit(EXIT_FAILURE);
-	    }
-	    char buf[BUFFER_SIZE];
-        fgets(buf, BUFFER_SIZE, ptr);
-        strcpy(parsed_question->question_content, buf);
-        for(int i = 0; i < 4; i++){
-            fgets(buf, sizeof buf, ptr);
-            parsed_question->answers[i].identifier = buf[0];
-            fgets(buf, sizeof buf, ptr);
-            strcpy(parsed_question->answers[i].answer_content, buf);
-        }
-        fgets(buf, sizeof buf, ptr);
-        parsed_question->correct_answer = atoi(buf);    
-        parsed_question->id=question_id;     
-        free(ptr);
+        char *path = (char *)malloc(sizeof(char) * PATH_LENGTH);
+        path_from_id(path, question_id);
+
+        parse_question_from_file(path, parsed_question, question_id);
+
         exit(0);
     }
     else
     {
-        // parent will wait until the child finished
+        // wait until the child process finished
         wait(&status);
 
-        // now detach the shared memory segment
+        // detach the shared memory segment
         shm_unlink(name);
         return parsed_question;
     }
-
 }
-
 
 int main()
 {
@@ -128,6 +165,7 @@ int main()
     pthread_t time_thread;
 
     int connection_socket = setup_server();
+
 
     max_fd = connection_socket;
 
@@ -194,10 +232,12 @@ int main()
             memset(buffer, 0, BUFFER_SIZE);
 
             // Blocking system call, waiting for data from client
+
             ret = read(player->fd, buffer, BUFFER_SIZE);
             
             // Read returns zero if socket disconnects
-            if(ret == 0){
+            if (ret == 0)
+            {
                 printf("Client disconnected\n");
                 removePlayer(player);
                 continue;
@@ -269,8 +309,9 @@ int main()
                     }
                 }
             }  
+
         }
-    } 
+    }
 
     stopStopwatch(time_thread);
 
