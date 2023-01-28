@@ -9,8 +9,6 @@
 #include "constants.h"
 #include "global.h"
 #include "stopwatch.h"
-#include "file-access.h"
-
 
 int main()
 {
@@ -21,12 +19,10 @@ int main()
     pthread_t time_thread;
 
     int connection_socket = setup_server();
-    
     max_fd = connection_socket;
 
     while(1) {
         // Copy the entire monitored FDs to readfds
-
         getPlayersFds(&readfds, connection_socket);
 
         // Blocking system call, waiting for select call
@@ -87,12 +83,10 @@ int main()
             memset(buffer, 0, BUFFER_SIZE);
 
             // Blocking system call, waiting for data from client
-
             ret = read(player->fd, buffer, BUFFER_SIZE);
             
             // Read returns zero if socket disconnects
-            if (ret == 0)
-            {
+            if(ret == 0){
                 printf("Client disconnected\n");
                 removePlayer(player);
                 continue;
@@ -164,9 +158,8 @@ int main()
                     }
                 }
             }  
-
         }
-    }
+    } 
 
     stopStopwatch(time_thread);
 
