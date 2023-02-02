@@ -170,16 +170,12 @@ int main()
 
     stopStopwatch(time_thread);
 
-    printf("Sending final scoreboard to players.\n");
-    for (int i = 0; i < MAX_PLAYER_SUPPORTED; i++)
-    {
-        if (players[i] == NULL)
-            continue;
-        sendFinalScoreboard(players[i]);
-    }
-    sleep(10);
+
+    send_score_to_players();
 
     save_final_scoreboard();
+    
+    sleep(10);
     
     // Close the connection socket
     close_server(connection_socket);

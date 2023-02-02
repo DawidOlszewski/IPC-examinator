@@ -1,6 +1,9 @@
-#include <pthread.h>
-#include "game.h"
+#ifndef GLOBAL
+#define GLOBAL
+
+#include<pthread.h>
 #include "constants.h"
+#include "game.h"
 #include "player.h"
 
 extern Player* players[MAX_PLAYER_SUPPORTED];
@@ -12,3 +15,5 @@ extern char currentAnwser;
 extern int questionTime;
 extern char scoreBoard[];
 extern pthread_mutex_t time_mutex;
+
+#endif

@@ -133,7 +133,8 @@ void save_final_scoreboard()
             printf("No such file");
             exit(EXIT_FAILURE);
         }
-        char* formatted_time = get_iso_time();
+        char formatted_time[DATE_FORMAT_LENGTH];
+        get_iso_time(formatted_time);
         fprintf(file_ptr,"Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
         fclose(file_ptr);
         exit(0);

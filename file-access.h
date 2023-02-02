@@ -1,3 +1,6 @@
+#ifndef FILE_ACCESS
+#define FILE_ACCESS
+
 #include "constants.h"
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -33,3 +36,5 @@ void parse_question_from_file(char *path, Question *parsed_question, int questio
 Question *get_question(int question_id);
 
 void save_final_scoreboard();
+
+#endif
