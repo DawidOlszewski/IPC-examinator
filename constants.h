@@ -4,3 +4,4 @@
 #define QUESTION_NR 4
 #define QUESTION_PATH "./questions/"
 #define PATH_LENGTH 64
+#define RESULTS_FILE_PATH "./results.txt"

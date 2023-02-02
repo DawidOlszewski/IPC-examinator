@@ -179,8 +179,11 @@ int main()
     }
     sleep(10);
 
+    save_final_scoreboard();
+    
     // Close the connection socket
     close_server(connection_socket);
+
 
     // Unlink the socket
     exit(EXIT_SUCCESS);

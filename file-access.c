@@ -18,7 +18,7 @@ Question *allocate_shared_memory(const char *name)
     int shared_memory_size;
 
     shared_memory_size = sizeof(Question);
-    
+
     // In case of unexpected error in parser clear shared memory
     shm_unlink(name);
 
@@ -35,7 +35,7 @@ Question *allocate_shared_memory(const char *name)
     ftruncate(shared_memory_fd, shared_memory_size);
 
     // Map parsed question to shared memory
-    Question* parsed_question = (Question *)mmap(NULL, shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    Question *parsed_question = (Question *)mmap(NULL, shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
 
     // Close shared memory fd
     close(shared_memory_fd);
@@ -70,7 +70,7 @@ void parse_question_from_file(char *path, Question *parsed_question, int questio
     // get correct answer index
     fgets(buf, BUFFER_SIZE, ptr);
     parsed_question->correct_answer = atoi(buf);
-    
+
     parsed_question->id = question_id;
     free(ptr);
 }
@@ -113,5 +113,36 @@ Question *get_question(int question_id)
         // detach the shared memory segment
         shm_unlink(name);
         return parsed_question;
+    }
+}
+
+void save_final_scoreboard()
+{
+    pid_t childPID = fork();
+
+    if (childPID == -1)
+    {
+        perror("Error while forking");
+        exit(EXIT_FAILURE);
+    }
+    if (childPID == 0)
+    {
+        FILE *file_ptr = fopen(RESULTS_FILE_PATH, "w");
+        if (file_ptr == NULL)
+        {
+            printf("No such file");
+            exit(EXIT_FAILURE);
+        }
+        char* formatted_time = get_iso_time();
+        fprintf(file_ptr,"Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
+        fclose(file_ptr);
+        exit(0);
+    }
+    else
+    {
+        // wait until the child process finished
+        wait(NULL);
+
+        return;
     }
 }

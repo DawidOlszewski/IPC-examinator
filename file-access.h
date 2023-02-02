@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "global.h"
 
 typedef struct Answer
 {
@@ -30,3 +31,5 @@ Question *allocate_shared_memory(const char *name);
 void parse_question_from_file(char *path, Question *parsed_question, int question_id);
 
 Question *get_question(int question_id);
+
+void save_final_scoreboard();

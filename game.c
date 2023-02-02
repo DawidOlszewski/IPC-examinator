@@ -94,9 +94,10 @@ void updateScoreBoard(){
 
 void sendFinalScoreboard(Player *player)
 {
-    char* time = get_iso_time();
+    char* formatted_time = get_iso_time();
     char *buffer = calloc(512, sizeof(char));
-    sprintf(buffer, "Game finished on %s\nFinal score: \n%s",time, scoreBoard);
+    sprintf(buffer, "Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
     check(write(player->fd, buffer, 512 * sizeof(char)), "write in sendFinalScoreboard");
     free(buffer);
+    free(formatted_time);
 }
