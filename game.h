@@ -1,6 +1,9 @@
 #include"player.h"
 #ifndef gameheader
 #define gameheader
+
+#include "time-utils.h"
+
 typedef enum gameState{
     NOTSTARTED,
     INPROGRESS
@@ -12,5 +15,5 @@ int genNewQuestion();
 char* genView(Player* player);
 void sendView(Player* player, char* info);
 void updateScoreBoard();
-
+void sendFinalScoreboard(Player* player);
 #endif
