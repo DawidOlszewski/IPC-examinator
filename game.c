@@ -91,3 +91,23 @@ void updateScoreBoard(){
     memset(scoreBoard, 0, 512); 
     strcpy(scoreBoard, tempScoreBoard);
 }
+
+void sendFinalScoreboard(Player *player)
+{
+    char formatted_time[DATE_FORMAT_LENGTH];
+    get_iso_time(formatted_time);
+    char *buffer = calloc(512, sizeof(char));
+    sprintf(buffer, "Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
+    check(write(player->fd, buffer, 512 * sizeof(char)), "write in sendFinalScoreboard");
+    free(buffer);
+}
+
+void send_score_to_players() {
+    printf("Sending final scoreboard to players.\n");
+    for (int i = 0; i < MAX_PLAYER_SUPPORTED; i++)
+    {
+        if (players[i] == NULL)
+            continue;
+        sendFinalScoreboard(players[i]);
+    }
+}

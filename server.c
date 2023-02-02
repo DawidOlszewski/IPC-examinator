@@ -170,11 +170,16 @@ int main()
 
     stopStopwatch(time_thread);
 
-    //TODO: send the score board to players;
 
+    send_score_to_players();
 
+    save_final_scoreboard();
+    
+    sleep(10);
+    
     // Close the connection socket
     close_server(connection_socket);
+
 
     // Unlink the socket
     exit(EXIT_SUCCESS);
