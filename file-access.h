@@ -27,7 +27,7 @@ typedef struct Question
     int correct_answer;
 } Question;
 
-void path_from_id(char *path, int id);
+void create_path_from_id(char *path, int id);
 
 Question *allocate_shared_memory(const char *name);
 

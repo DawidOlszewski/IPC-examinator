@@ -1,6 +1,6 @@
 #include "file-access.h"
 
-void path_from_id(char *path, int id)
+void create_path_from_id(char *path, int id)
 {
     // Convert id to string
     int num_length = (int)((ceil(log10(id)) + 1));
@@ -45,8 +45,8 @@ Question *allocate_shared_memory(const char *name)
 
 void parse_question_from_file(char *path, Question *parsed_question, int question_id)
 {
-    FILE *ptr = fopen(path, "r");
-    if (ptr == NULL)
+    FILE *file_ptr = fopen(path, "r");
+    if (file_ptr == NULL)
     {
         printf("No such file");
         exit(EXIT_FAILURE);
@@ -54,25 +54,25 @@ void parse_question_from_file(char *path, Question *parsed_question, int questio
 
     // get question content
     char buf[BUFFER_SIZE];
-    fgets(buf, BUFFER_SIZE, ptr);
+    fgets(buf, BUFFER_SIZE, file_ptr);
     strcpy(parsed_question->question_content, buf);
 
     // get all answers
     for (int i = 0; i < 4; i++)
     {
-        fgets(buf, BUFFER_SIZE, ptr);
+        fgets(buf, BUFFER_SIZE, file_ptr);
         parsed_question->answers[i].identifier = buf[0];
 
-        fgets(buf, BUFFER_SIZE, ptr);
+        fgets(buf, BUFFER_SIZE, file_ptr);
         strcpy(parsed_question->answers[i].answer_content, buf);
     }
 
     // get correct answer index
-    fgets(buf, BUFFER_SIZE, ptr);
+    fgets(buf, BUFFER_SIZE, file_ptr);
     parsed_question->correct_answer = atoi(buf);
 
     parsed_question->id = question_id;
-    free(ptr);
+    free(file_ptr);
 }
 
 Question *get_question(int question_id)
@@ -88,7 +88,6 @@ Question *get_question(int question_id)
     }
 
     pid_t childPID = fork();
-    int status;
 
     if (childPID == -1)
     {
@@ -98,17 +97,17 @@ Question *get_question(int question_id)
     if (childPID == 0)
     {
 
-        char *path = (char *)malloc(sizeof(char) * PATH_LENGTH);
-        path_from_id(path, question_id);
+        char *path = (char *)calloc(PATH_LENGTH, sizeof(char));
+        create_path_from_id(path, question_id);
 
         parse_question_from_file(path, parsed_question, question_id);
-
-        exit(0);
+        free(path);
+        exit(EXIT_SUCCESS);
     }
     else
     {
         // wait until the child process finished
-        wait(&status);
+        wait(NULL);
 
         // detach the shared memory segment
         shm_unlink(name);
