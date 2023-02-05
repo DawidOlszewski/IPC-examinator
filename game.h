@@ -18,6 +18,7 @@ typedef enum gameState{
 } gameState;
 
 #include"global.h"
+#include "file-access.h"
 
 int everyPlayerFinished();
 //returns 1 when all questions were used, 0 when there are more 
