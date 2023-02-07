@@ -33,14 +33,22 @@ void createPlayer(int skt_fd, char* username){
     printf("cannot add another player because max limit is exceeded\n");
 }
 
-// Remove the FD from players[ array
+// Remove the FD from players array
 void removePlayer(Player* player){
+    int removed = 0;
     for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+        if(players[i] != NULL){
+            max_fd = max(max_fd, players[i]->fd);
+        }
         if(players[i] == player){
             free(players[i]);
             players[i] = NULL;
-            break;
+            removed = 1;
         }
+    }
+    if(removed == 0){
+        printf("Error: this player doesn't exist.\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -81,4 +89,13 @@ Player* getPlayerByFd(int fd){
 Player* getReadyPlayer(fd_set* readfds){
     int fd = getReadyFd(readfds);
     return getPlayerByFd(fd);
+}
+
+int isPlayerArrayEmpty(){
+    for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
+        if(players[i] != NULL){
+            return 0;
+        }
+    }
+    return 1;
 }
