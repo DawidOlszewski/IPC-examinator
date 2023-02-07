@@ -1,8 +1,4 @@
-#include<pthread.h>
-#include<unistd.h>
-#include"errors.h"
 #include"stopwatch.h"
-#include"global.h"
 
 
 static void cleanupHandler(void* t){

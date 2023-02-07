@@ -1,12 +1,4 @@
-#include<string.h>
-#include<sys/socket.h>
-#include<sys/un.h>
-#include<unistd.h>
-#include<stdio.h>
-#include"player.h"
-#include"errors.h"
-#include"constants.h"
-#include"global.h"
+#include "server-utils.h"
 
 int setup_server(){
     struct sockaddr_un name; // Socket type and socket name

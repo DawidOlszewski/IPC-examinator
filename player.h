@@ -1,8 +1,11 @@
-#include<sys/select.h>
-#include"constants.h"
-
 #ifndef playerheader
 #define playerheader
+
+#include<sys/select.h>
+#include"constants.h"
+#include<stdio.h> 
+#include<stdlib.h>
+#include<string.h>
 
 typedef struct Player{
     int score[QUESTION_NR];
@@ -12,7 +15,7 @@ typedef struct Player{
     char lastInfo[128];
 } Player;
 
-
+#include"global.h"
 
 void intitiazePlayers();
 void createPlayer(int skt_fd, char* username);

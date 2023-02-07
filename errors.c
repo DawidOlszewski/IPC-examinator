@@ -1,5 +1,4 @@
-#include<stdlib.h>
-#include<stdio.h>
+#include "errors.h"
 
 int check(int response, char* message){
     if (response == -1) {

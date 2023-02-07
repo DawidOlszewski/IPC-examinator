@@ -1,9 +1,5 @@
-#include<sys/select.h>
-#include"constants.h"
-#include"global.h"
-#include<stdio.h> 
-#include<stdlib.h>
-#include<string.h>
+#include "player.h"
+
 #define max(x, y) x > y ? x : y
 
 

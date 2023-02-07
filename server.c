@@ -3,13 +3,7 @@
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
-#include "errors.h"
 #include "server-utils.h"
-#include "player.h"
-#include "constants.h"
-#include "global.h"
-#include "stopwatch.h"
-#include "file-access.h"
 
 
 int main()
