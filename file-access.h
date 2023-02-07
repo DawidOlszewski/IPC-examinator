@@ -40,6 +40,4 @@ void save_final_scoreboard();
 
 int count_question_files();
 
-void verify_question_count();
-
 #endif

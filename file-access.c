@@ -168,11 +168,3 @@ int count_question_files()
     return file_count;
 }
 
-void verify_question_count()
-{
-    int count = count_question_files();
-    if(count < QUESTION_NR) {
-        fprintf(stderr, "%d questions expected, found only %d", QUESTION_NR, count);
-        exit(EXIT_FAILURE);
-    }
-}
