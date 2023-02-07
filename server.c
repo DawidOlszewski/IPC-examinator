@@ -14,6 +14,8 @@
 
 int main()
 {
+    verify_question_count();
+
     intitiazePlayers();
     int ret;
     char buffer[BUFFER_SIZE];
@@ -21,7 +23,7 @@ int main()
     pthread_t time_thread;
 
     int connection_socket = setup_server();
-    
+
     max_fd = connection_socket;
 
     while(1) {

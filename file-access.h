@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "global.h"
+#include <dirent.h>
 
 typedef struct Answer
 {
@@ -36,5 +37,9 @@ void parse_question_from_file(char *path, Question *parsed_question, int questio
 Question *get_question(int question_id);
 
 void save_final_scoreboard();
+
+int count_question_files();
+
+void verify_question_count();
 
 #endif
