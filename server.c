@@ -17,9 +17,10 @@ int main()
     char buffer[BUFFER_SIZE];
     fd_set readfds;
     pthread_t time_thread;
+    //TODO: some by hand initialization of global variables in global.c
 
     int connection_socket = setup_server();
-    max_fd = connection_socket;
+    max_fd = connection_socket; //max_fd
 
     while(1) {
         // Copy the entire monitored FDs to readfds
@@ -52,6 +53,11 @@ int main()
             if(strncmp(buffer, "start", 5) == 0 ){
                 if(currentGameState == INPROGRESS){
                     printf("game is already in progress\n");
+                    continue;
+                }
+
+                if(isPlayerArrayEmpty()){
+                    printf("there are not any players at that moment, therfore game cannot be started\n");
                     continue;
                 }
                 currentGameState = INPROGRESS;
@@ -89,6 +95,10 @@ int main()
             if(ret == 0){
                 printf("Client disconnected\n");
                 removePlayer(player);
+                if(isPlayerArrayEmpty() == 1 && currentGameState == INPROGRESS){
+                    printf("All players finished gameplay, therefore server goes down\n");
+                    exit(EXIT_SUCCESS);
+                }
                 continue;
             }
 
