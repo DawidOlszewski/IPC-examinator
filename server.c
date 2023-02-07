@@ -25,7 +25,6 @@ int main()
     char buffer[BUFFER_SIZE];
     fd_set readfds;
     pthread_t time_thread;
-    //TODO: some by hand initialization of global variables in global.c
 
     int connection_socket = setup_server();
 
@@ -40,13 +39,13 @@ int main()
         select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
         printf("new msg arrived\n");
-
+        //from stdio
         if(FD_ISSET(0, &readfds)){
             //when the game is in progress but you wanna check store it server terminal
             if(currentGameState != NOTSTARTED){
                 check(read(0, buffer, 1), "read when reading from stdin when game started");
                 printf("\n\nSCOREBORAD\n\n%s\n", scoreBoard);
-                memset(scoreBoard, 0, 512); //TODO: dleete
+                memset(scoreBoard, 0, 512);
                 continue;
             }
             memset(buffer, 0, BUFFER_SIZE);
@@ -73,7 +72,6 @@ int main()
                 currentGameState = INPROGRESS;
                 printf("game - started\n");
 
-                //TODO: it should be wrapped in function nextQuestion()
                 startStopwatch(&time_thread);
                 genNewQuestion();
                 for(int i = 0; i < MAX_PLAYER_SUPPORTED; i++){
@@ -86,11 +84,12 @@ int main()
                 printf("print \"start\" to start game\n");
             }
         }
+        //new connection
         else if(FD_ISSET(connection_socket, &readfds)){
             // Select call to master fd, new client connection
             handle_new_connection(connection_socket);
         }
-        else // Connected client made selected call
+        else // Connected client msg
         {
             // Find the player which has send us the call
             Player* player = getReadyPlayer(&readfds);
@@ -139,7 +138,8 @@ int main()
                     continue;
                 }
  
-                if(buffer[0] == currentAnwser){ //TODO: it should be splitted somehow
+                //checking anwser
+                if(buffer[0] == currentAnwser){
                     player->score[question_nr-1] = 1;
                     player->timeElapsed[question_nr-1] = getTime(); 
                     updateScoreBoard();

@@ -1,33 +1,34 @@
 # IPC-examinator
 
-*C(V) driven development* **by Dawid Olszewski and Mateusz Cerulewicz** 
+_C(V) driven development_ **by Dawid Olszewski and Mateusz Cerulewicz**
 
 Fully made in C programinng language.
 
 The Image can by downloaded from [here](https://hub.docker.com/repository/docker/dawidolszewski/ipc-examinator/general)
 
 Technologies, that were used here:
-* Inter Proccess Communication by UNIX sockets and shared memory.
-* Proccess Forking
-* Signals handling
-* Multithreading
-* Multistage Dockerfile
-* Client-Server Architecture
-* Write from/to binary files
+
+- Inter Proccess Communication by UNIX sockets and shared memory.
+- Proccess Forking
+- Multithreading
+- Multistage Dockerfile
+- Client-Server Architecture
+- Write from/to files
 
 ## How to use it
 
 1. Get the executable:
-there are two options:
-* forking repo and compiling on your own, using commands below (of course gcc is necessary): 
+   there are two options:
 
-  `gcc server.c server-utils.c errors.c player.c global.c game.c stopwatch.c -o server.o -pthread`
+- forking repo and compiling on your own, using commands below (of course gcc is necessary):
+
+  `gcc server.c server-utils.c errors.c player.c global.c game.c stopwatch.c file-access.c time-utils.c -pthread -lrt -lm -o server.o `
 
   `gcc client.c errors.c -o client.o`
 
-* using docker:
-  
-   `docker run -itd --name ipc-examinator dawidolszewski/ipc-examinator:0.0.1`
+- using docker:
+
+  `docker run -itd --name ipc-examinator dawidolszewski/ipc-examinator:latest`
 
 2. run server `./server.o` (this is our broker, in this terminal we can see the logs and get the score board. We can also finish the game by simple closing this process)
 3. run as many clients as you wish (everyone should be in its own terminal) `./client.o {username of player}` example `./client.o Dawid`
