@@ -1,13 +1,4 @@
-#include<string.h>
-#include<stdlib.h>
-#include<stdio.h>
-#include <unistd.h>
-#include"constants.h"
-#include"global.h"
-#include"player.h"
-#include"errors.h"
-#include"game.h"
-#include"stopwatch.h"
+#include "game.h"
 
 int everyPlayerFinished(){
     for(int i = 0; i< MAX_PLAYER_SUPPORTED; i++){
@@ -25,14 +16,20 @@ int genNewQuestion(){
     if(question_nr == QUESTION_NR){
         return 1;
     }
-    char anwsers[QUESTION_NR] = {'A', 'B', 'C', 'D'}; //TODO: its temporary
-    char* questions[QUESTION_NR] = {"Q: How many eggs are in the basket?\nA: 1\nB: 2\nC: 3\nD: 4\n",
-                                    "Q: How old I am?\nA: 12\nB: 18\nC: 14\nD: 13\n",
-                                    "Q: Do you like her?\nA: No\nB: Yes\nC: No, I love her\nD: Braaaaa\n",
-                                    "Q: Is C high level lang?\nA: Yes\nB: No\nC: Studpied question\nD: Lets waste half of lecture\n"};
+    Question* parsed_question = get_question(question_nr+1); 
 
-    strcpy(currentQuestion, questions[question_nr]); 
-    currentAnwser = anwsers[question_nr];
+    char formatted_question[BUFFER_SIZE];
+
+    sprintf(formatted_question, "\n%s\n%c: %s%c: %s%c: %s%c: %s\n", 
+    parsed_question->question_content,
+    parsed_question->answers[0].identifier, parsed_question->answers[0].answer_content,
+    parsed_question->answers[1].identifier, parsed_question->answers[1].answer_content,
+    parsed_question->answers[2].identifier, parsed_question->answers[2].answer_content,
+    parsed_question->answers[3].identifier, parsed_question->answers[3].answer_content);
+    
+    strcpy(currentQuestion, formatted_question);
+     
+    currentAnwser = parsed_question->answers[parsed_question->correct_answer-1].identifier;
     question_nr++;
     return 0;
 }
