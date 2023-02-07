@@ -134,7 +134,7 @@ void save_final_scoreboard()
         }
         char formatted_time[DATE_FORMAT_LENGTH];
         get_iso_time(formatted_time);
-        fprintf(file_ptr,"Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
+        fprintf(file_ptr, "Game finished on %s\nFinal score: \n%s", formatted_time, scoreBoard);
         fclose(file_ptr);
         exit(0);
     }
@@ -146,3 +146,25 @@ void save_final_scoreboard()
         return;
     }
 }
+
+int count_question_files()
+{
+
+    int file_count = 0;
+    DIR *dirp;
+    struct dirent *entry;
+
+    dirp = opendir(QUESTION_PATH); 
+    if(dirp == NULL) {
+        perror("Question directory not found!");
+        exit(EXIT_FAILURE);
+    }
+    while ((entry = readdir(dirp)) != NULL){
+        if (entry->d_type == DT_REG){ 
+            file_count++;
+        }
+    }
+    closedir(dirp);
+    return file_count;
+}
+

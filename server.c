@@ -14,6 +14,12 @@
 
 int main()
 {
+    int count = count_question_files();
+    if(count < QUESTION_NR) {
+        fprintf(stderr, "%d questions expected, found only %d", QUESTION_NR, count);
+        exit(EXIT_FAILURE);
+    }
+
     intitiazePlayers();
     int ret;
     char buffer[BUFFER_SIZE];
@@ -21,7 +27,7 @@ int main()
     pthread_t time_thread;
 
     int connection_socket = setup_server();
-    
+
     max_fd = connection_socket;
 
     while(1) {
